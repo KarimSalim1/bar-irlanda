@@ -8,7 +8,12 @@ const app = express();
 const server = http.createServer(app);
 const io = socketIo(server, {
   pingTimeout: 60000,
-  pingInterval: 25000
+  pingInterval: 25000,
+  cors: {
+    origin: "*",
+    methods: ["GET", "POST"],
+    credentials: true
+  }
 });
 // ======================
 // DATOS DEL BAR IRLANDA - MENÚ COMPLETO CON IMÁGENES
@@ -384,24 +389,8 @@ function calculateElapsedTime(startTime) {
 // CONFIGURACIÓN EXPRESS
 // ======================
 // Configuración de CORS ESPECÍFICA
-app.use(cors({
-  origin: [
-    'https://bar-irlanda.netlify.app',
-    'http://localhost:3000',
-    'http://localhost:3003'
-  ],
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
-}));
-
-// Manejar preflight requests
-app.options('*', (req, res) => {
-  res.header('Access-Control-Allow-Origin', '*');
-  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-  res.sendStatus(200);
-});
+// Configuración SIMPLE de CORS
+app.use(cors());
 app.use(express.static('public'));
 app.use(express.json());
 
@@ -415,6 +404,16 @@ app.get('/api/state', (req, res) => {
     activeOrders: state.orders.filter(o => o.status === 'pending'),
     activeBills: state.bills.filter(b => b.status === 'pending'),
     tables: Object.values(state.tables)
+  });
+});
+
+// Ruta de prueba para verificar CORS
+app.get('/api/health', (req, res) => {
+  res.json({
+    status: 'OK',
+    message: 'Bar Irlanda Backend funcionando',
+    timestamp: new Date().toISOString(),
+    cors: 'Configurado correctamente'
   });
 });
 
