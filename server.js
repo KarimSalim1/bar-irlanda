@@ -8,7 +8,16 @@ const app = express();
 const server = http.createServer(app);
 const io = socketIo(server, {
   pingTimeout: 60000,
-  pingInterval: 25000
+  pingInterval: 25000,
+  cors: {
+    origin: [
+      'https://bar-irlanda.netlify.app',
+      'http://localhost:3000',
+      'http://localhost:3003'
+    ],
+    methods: ["GET", "POST"],
+    credentials: true
+  }
 });
 // ======================
 // DATOS DEL BAR IRLANDA - MENÚ COMPLETO CON IMÁGENES
@@ -383,7 +392,20 @@ function calculateElapsedTime(startTime) {
 // ======================
 // CONFIGURACIÓN EXPRESS
 // ======================
-app.use(cors());
+// Configuración de CORS ESPECÍFICA
+app.use(cors({
+  origin: [
+    'https://bar-irlanda.netlify.app',
+    'http://localhost:3000',
+    'http://localhost:3003'
+  ],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
+
+// Manejar preflight requests
+app.options('*', cors());
 app.use(express.static('public'));
 app.use(express.json());
 
