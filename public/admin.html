@@ -1,0 +1,1750 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="shortcut icon" href="./images/logo.jpg" type="image/x-icon">
+    <title>🍀 Bar Irlanda - Panel Administrador</title>
+     <style>
+        /* ====== RESET & BASE STYLES - PALETA BAR IRLANDA ====== */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        :root {
+            --primary-yellow: #FFD700;
+            --yellow-dark: #FFA500;
+            --yellow-light: #FFFACD;
+            --primary-white: #FFFFFF;
+            --primary-black: #000000;
+            --gray-dark: #333333;
+            --gray-medium: #666666;
+            --gray-light: #F5F5F5;
+            --success-color: #4caf50;
+            --warning-color: #ff9800;
+            --danger-color: #f44336;
+            --info-color: #2196f3;
+            --purple-color: #9c27b0;
+            --card-bg: #1a1a1a;
+            --card-border: #444;
+            --shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            --radius-sm: 5px;
+            --radius-md: 10px;
+            --radius-lg: 15px;
+            --transition: all 0.3s ease;
+        }
+        
+        body {
+            background: linear-gradient(135deg, var(--primary-black) 0%, var(--gray-dark) 100%);
+            color: var(--primary-white);
+            min-height: 100vh;
+            padding: 15px;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+        
+        /* ====== CONTAINERS & LAYOUT ====== */
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            width: 100%;
+        }
+        
+        /* ====== HEADER CON LOGO ====== */
+        .header {
+            background: 
+                linear-gradient(to right, rgba(0, 0, 0, 0.9), rgba(51, 51, 51, 0.95)),
+                url('./images/logo.jpg') center center no-repeat;
+            background-size: cover, 100px 100px;
+            padding: 15px 20px;
+            border-radius: var(--radius-md);
+            margin-bottom: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            border: 2px solid var(--primary-yellow);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: var(--primary-yellow);
+        }
+        
+        @media (min-width: 768px) {
+            .header {
+                flex-direction: row;
+                justify-content: space-between;
+                align-items: center;
+            }
+        }
+        
+        .header h1 {
+            font-size: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+            color: var(--primary-yellow);
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+        }
+        
+        @media (min-width: 768px) {
+            .header h1 {
+                font-size: 24px;
+            }
+        }
+        
+        .header-controls {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            align-items: flex-start;
+        }
+        
+        @media (min-width: 480px) {
+            .header-controls {
+                flex-direction: row;
+                align-items: center;
+            }
+        }
+        
+        .current-time {
+            background: rgba(255, 215, 0, 0.2);
+            padding: 8px 15px;
+            border-radius: var(--radius-sm);
+            font-family: monospace;
+            font-size: 14px;
+            white-space: nowrap;
+            color: var(--primary-yellow);
+            border: 1px solid var(--primary-yellow);
+        }
+        
+        #connectionStatus {
+            padding: 8px 15px;
+            background: rgba(76, 175, 80, 0.2);
+            border-radius: var(--radius-sm);
+            font-size: 14px;
+            color: var(--primary-white);
+            border: 1px solid #4caf50;
+        }
+        
+        .btn-logout {
+            background: var(--primary-black);
+            color: var(--primary-yellow);
+            border: 2px solid var(--primary-yellow);
+            padding: 8px 15px;
+            border-radius: var(--radius-sm);
+            font-weight: bold;
+            cursor: pointer;
+            transition: var(--transition);
+            white-space: nowrap;
+        }
+        
+        .btn-logout:hover {
+            background: var(--primary-yellow);
+            color: var(--primary-black);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(255, 215, 0, 0.3);
+        }
+        
+        /* ====== STATS CARDS ====== */
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        @media (max-width: 480px) {
+            .stats {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 10px;
+            }
+        }
+        
+        .stat-card {
+            background: var(--card-bg);
+            padding: 15px;
+            border-radius: var(--radius-md);
+            text-align: center;
+            border-left: 5px solid var(--primary-yellow);
+            transition: var(--transition);
+            border: 1px solid var(--card-border);
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-3px);
+            box-shadow: var(--shadow);
+            border-color: var(--primary-yellow);
+        }
+        
+        .stat-number {
+            font-size: 28px;
+            font-weight: bold;
+            color: var(--primary-yellow);
+            margin-bottom: 5px;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+        }
+        
+        @media (min-width: 768px) {
+            .stat-number {
+                font-size: 36px;
+            }
+        }
+        
+        .stat-label {
+            color: var(--gray-light);
+            font-size: 13px;
+        }
+        
+        /* ====== DASHBOARD GRID ====== */
+        .dashboard {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 20px;
+        }
+        
+        @media (min-width: 768px) {
+            .dashboard {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+        
+        @media (min-width: 1200px) {
+            .dashboard {
+                grid-template-columns: repeat(4, 1fr);
+            }
+        }
+        
+        .panel {
+            background: var(--card-bg);
+            border-radius: var(--radius-md);
+            overflow: hidden;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            border: 1px solid var(--card-border);
+        }
+        
+        .panel:hover {
+            border-color: var(--primary-yellow);
+        }
+        
+        /* Mesa panel should take full width on mobile, 2 columns on tablet, full row on desktop */
+        .panel:nth-child(4) {
+            grid-column: 1 / -1;
+        }
+        
+        @media (min-width: 768px) and (max-width: 1199px) {
+            .panel:nth-child(4) {
+                grid-column: span 2;
+            }
+        }
+        
+        .panel-header {
+            background: linear-gradient(to right, var(--primary-black), var(--gray-dark));
+            padding: 15px;
+            font-weight: bold;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+            border-bottom: 3px solid var(--primary-yellow);
+        }
+        
+        .panel-header span:first-child {
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--primary-yellow);
+        }
+        
+        .panel-header span:last-child {
+            background: rgba(255, 215, 0, 0.2);
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            color: var(--primary-yellow);
+            border: 1px solid var(--primary-yellow);
+        }
+        
+        .panel-content {
+            padding: 15px;
+            overflow-y: auto;
+            flex: 1;
+            max-height: 400px;
+        }
+        
+        @media (max-width: 768px) {
+            .panel-content {
+                max-height: 300px;
+            }
+        }
+        
+        /* ====== EMPTY STATE ====== */
+        .item-empty {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--gray-medium);
+            font-style: italic;
+        }
+        
+        /* ====== ITEM CARDS ====== */
+        .call-item, .order-item, .bill-item {
+            background: var(--gray-dark);
+            margin-bottom: 10px;
+            padding: 15px;
+            border-radius: var(--radius-sm);
+            border-left: 5px solid var(--primary-yellow);
+            position: relative;
+            border: 1px solid var(--card-border);
+        }
+        
+        .call-item.attended {
+            border-left-color: var(--success-color);
+            opacity: 0.8;
+        }
+        
+        .order-item.ready {
+            border-left-color: var(--success-color);
+        }
+        
+        .bill-item.paid {
+            border-left-color: var(--success-color);
+            opacity: 0.8;
+        }
+        
+        .table-info {
+            font-weight: bold;
+            color: var(--primary-yellow);
+            margin-bottom: 5px;
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .item-id {
+            color: var(--gray-light);
+            font-size: 11px;
+            margin-bottom: 5px;
+        }
+        
+        .time-display {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            margin: 10px 0;
+            font-size: 13px;
+        }
+        
+        @media (min-width: 480px) {
+            .time-display {
+                flex-direction: row;
+                justify-content: space-between;
+                align-items: center;
+            }
+        }
+        
+        .time-badge {
+            background: rgba(255, 215, 0, 0.2);
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 11px;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            color: var(--primary-yellow);
+            border: 1px solid var(--primary-yellow);
+        }
+        
+        .elapsed-time {
+            color: var(--primary-yellow);
+            font-weight: bold;
+            font-size: 13px;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .elapsed-time.urgent {
+            color: var(--danger-color);
+            animation: pulse 1.5s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+        
+        /* ====== ACTIONS BUTTONS ====== */
+        .actions {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-top: 10px;
+        }
+        
+        @media (min-width: 480px) {
+            .actions {
+                flex-direction: row;
+                flex-wrap: wrap;
+            }
+        }
+        
+        .btn {
+            padding: 8px 15px;
+            border: none;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            font-weight: bold;
+            transition: var(--transition);
+            font-size: 13px;
+            text-align: center;
+            flex: 1;
+            min-width: 120px;
+        }
+        
+        @media (max-width: 479px) {
+            .btn {
+                width: 100%;
+            }
+        }
+        
+        .btn-attend {
+            background: var(--primary-black);
+            color: var(--primary-yellow);
+            border: 2px solid var(--primary-yellow);
+        }
+        
+        .btn-attend:hover {
+            background: var(--primary-yellow);
+            color: var(--primary-black);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(255, 215, 0, 0.3);
+        }
+        
+        .btn-served {
+            background: var(--success-color);
+            color: white;
+            border: 2px solid var(--success-color);
+        }
+        
+        .btn-served:hover {
+            background: #3d8b40;
+            border-color: #3d8b40;
+            transform: translateY(-2px);
+        }
+        
+        .btn-paid {
+            background: var(--primary-black);
+            color: var(--primary-yellow);
+            border: 2px solid var(--primary-yellow);
+        }
+        
+        .btn-paid:hover {
+            background: #a55c02;
+            color: var(--primary-black);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(255, 215, 0, 0.3);
+        }
+        
+        .btn-free {
+            background: var(--primary-yellow);
+            color: var(--primary-black);
+            border: 2px solid var(--primary-yellow);
+            font-weight: bold;
+        }
+        
+        .btn-free:hover {
+            background: var(--yellow-dark);
+            border-color: var(--yellow-dark);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(255, 215, 0, 0.3);
+        }
+        
+        /* ====== ITEMS DETAILS ====== */
+        .items-details {
+            background: var(--primary-black);
+            padding: 10px;
+            border-radius: var(--radius-sm);
+            margin-top: 10px;
+            border: 1px solid var(--primary-yellow);
+        }
+        
+        .item-detail {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(255, 215, 0, 0.2);
+            font-size: 13px;
+            color: var(--primary-white);
+        }
+        
+        @media (min-width: 480px) {
+            .item-detail {
+                flex-direction: row;
+                justify-content: space-between;
+                align-items: flex-start;
+            }
+        }
+        
+        .item-detail:last-child {
+            border-bottom: none;
+        }
+        
+        .person-tag {
+            background: rgba(255, 215, 0, 0.2);
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 10px;
+            margin-left: 5px;
+            display: inline-block;
+            color: var(--primary-yellow);
+            border: 1px solid var(--primary-yellow);
+        }
+        
+        .bill-details {
+            background: rgba(255, 215, 0, 0.1);
+            padding: 10px;
+            border-radius: var(--radius-sm);
+            margin-top: 10px;
+            font-size: 13px;
+            border: 1px solid var(--primary-yellow);
+        }
+        
+        .person-bill {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 5px;
+            padding: 5px 0;
+            border-bottom: 1px solid rgba(255, 215, 0, 0.2);
+            color: var(--primary-white);
+        }
+        
+        .person-bill:last-child {
+            border-bottom: none;
+        }
+        
+        /* ====== TABLES GRID ====== */
+        .tables-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+        }
+        
+        @media (min-width: 480px) {
+            .tables-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+        
+        @media (min-width: 768px) {
+            .tables-grid {
+                grid-template-columns: repeat(4, 1fr);
+            }
+        }
+        
+        @media (min-width: 1024px) {
+            .tables-grid {
+                grid-template-columns: repeat(5, 1fr);
+            }
+        }
+        
+        .table-card {
+            padding: 12px;
+            border-radius: var(--radius-sm);
+            text-align: center;
+            cursor: pointer;
+            transition: var(--transition);
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100px;
+            border: 2px solid transparent;
+        }
+        
+        @media (min-width: 768px) {
+            .table-card {
+                padding: 15px;
+                min-height: 120px;
+            }
+        }
+        
+        /* Table Status Colors con nueva paleta */
+        .table-card.available {
+            background: var(--gray-dark);
+            border-color: var(--card-border);
+            color: var(--gray-light);
+        }
+        
+        .table-card.active {
+            background: var(--primary-black);
+            border-color: var(--primary-yellow);
+            color: var(--primary-yellow);
+        }
+        
+        .table-card.ordering {
+            background: #0d47a1;
+            border-color: var(--info-color);
+            color: var(--primary-white);
+        }
+        
+        .table-card.waiting {
+            background: var(--warning-color);
+            border-color: #ffc107;
+            color: #333;
+        }
+        
+        .table-card.served {
+            background: var(--success-color);
+            border-color: #8bc34a;
+            color: white;
+        }
+        
+        .table-card.paying {
+            background: var(--primary-black);
+            border-color: var(--primary-yellow);
+            color: var(--primary-yellow);
+        }
+        
+        .table-card.paid_but_occupied {
+            background: var(--primary-black);
+            border-color: var(--primary-yellow);
+            color: var(--primary-yellow);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .table-card.paid_but_occupied::after {
+            content: "💰 PAGADO";
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: rgba(255, 215, 0, 0.9);
+            color: var(--primary-black);
+            font-size: 10px;
+            padding: 2px;
+            font-weight: bold;
+        }
+        
+        .table-icon {
+            font-size: 18px;
+            margin-bottom: 5px;
+        }
+        
+        @media (min-width: 768px) {
+            .table-icon {
+                font-size: 20px;
+            }
+        }
+        
+        .table-number {
+            font-weight: bold;
+            margin-bottom: 3px;
+            font-size: 14px;
+        }
+        
+        .table-status {
+            font-size: 11px;
+            margin-bottom: 5px;
+        }
+        
+        @media (min-width: 768px) {
+            .table-status {
+                font-size: 12px;
+            }
+        }
+        
+        .table-people {
+            font-size: 9px;
+            margin-top: 3px;
+            color: rgba(255, 255, 255, 0.7);
+        }
+        
+        .table-time {
+            font-size: 8px;
+            margin-top: 2px;
+            color: rgba(255, 255, 255, 0.5);
+        }
+        
+        @media (min-width: 768px) {
+            .table-people {
+                font-size: 10px;
+            }
+            
+            .table-time {
+                font-size: 9px;
+            }
+        }
+        
+        .table-action-btn {
+            margin-top: 8px;
+            padding: 5px 10px;
+            background: #24231f;
+            color: var(--primary-black);
+            border: none;
+            border-radius: 4px;
+            font-size: 9px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: var(--transition);
+            width: 90%;
+            border: 1px solid var(--primary-yellow);
+        }
+        
+        @media (min-width: 768px) {
+            .table-action-btn {
+                font-size: 10px;
+                padding: 6px 12px;
+            }
+        }
+        
+        .table-action-btn:hover {
+            background: var(--yellow-dark);
+            border-color: var(--yellow-dark);
+            transform: translateY(-2px);
+        }
+        
+        .served-indicator {
+            color: var(--success-color);
+            font-size: 11px;
+            margin-left: 5px;
+        }
+        
+        /* ====== LOGIN SCREEN ====== */
+        .login-screen {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+            background: linear-gradient(135deg, var(--primary-black) 0%, var(--gray-dark) 100%);
+        }
+        
+        .login-box {
+            background: var(--card-bg);
+            padding: 30px;
+            border-radius: var(--radius-md);
+            width: 100%;
+            max-width: 400px;
+            text-align: center;
+            box-shadow: var(--shadow);
+            border: 2px solid var(--primary-yellow);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .login-box::before {
+            content: '🍀';
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            font-size: 40px;
+            opacity: 0.1;
+            z-index: 0;
+        }
+        
+        @media (max-width: 480px) {
+            .login-box {
+                padding: 20px;
+            }
+        }
+        
+        .login-box h2 {
+            margin-bottom: 20px;
+            color: var(--primary-yellow);
+            font-size: 24px;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .login-box input {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 15px;
+            border: 2px solid var(--card-border);
+            border-radius: var(--radius-sm);
+            background: var(--primary-black);
+            color: var(--primary-white);
+            font-size: 16px;
+            transition: var(--transition);
+        }
+        
+        .login-box input:focus {
+            border-color: var(--primary-yellow);
+            outline: none;
+            box-shadow: 0 0 0 2px rgba(255, 215, 0, 0.2);
+        }
+        
+        .login-box button {
+            width: 100%;
+            padding: 12px;
+            background: var(--primary-black);
+            color: var(--primary-yellow);
+            border: 2px solid var(--primary-yellow);
+            border-radius: var(--radius-sm);
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+        
+        .login-box button:hover {
+            background: var(--primary-yellow);
+            color: var(--primary-black);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(255, 215, 0, 0.3);
+        }
+        
+        .sound-toggle {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 15px;
+            flex-wrap: wrap;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .sound-toggle label {
+            cursor: pointer;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            color: var(--gray-light);
+        }
+        
+        /* ====== SCROLLBAR STYLING ====== */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: var(--gray-dark);
+            border-radius: 4px;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: var(--primary-yellow);
+            border-radius: 4px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--yellow-dark);
+        }
+        
+        /* ====== UTILITY CLASSES ====== */
+        .text-truncate {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        
+        .text-center {
+            text-align: center;
+        }
+        
+        .text-right {
+            text-align: right;
+        }
+        
+        .mb-10 {
+            margin-bottom: 10px;
+        }
+        
+        .mb-15 {
+            margin-bottom: 15px;
+        }
+        
+        .mb-20 {
+            margin-bottom: 20px;
+        }
+        
+        .mt-10 {
+            margin-top: 10px;
+        }
+        
+        .mt-15 {
+            margin-top: 15px;
+        }
+        
+        .mt-20 {
+            margin-top: 20px;
+        }
+        
+        .d-flex {
+            display: flex;
+        }
+        
+        .d-flex-col {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .align-center {
+            align-items: center;
+        }
+        
+        .justify-between {
+            justify-content: space-between;
+        }
+        
+        .gap-5 {
+            gap: 5px;
+        }
+        
+        .gap-10 {
+            gap: 10px;
+        }
+        
+        .gap-15 {
+            gap: 15px;
+        }
+        
+        .w-100 {
+            width: 100%;
+        }
+        
+        /* ====== PRINT STYLES ====== */
+        @media print {
+            .header-controls,
+            .btn,
+            .table-action-btn,
+            .sound-toggle,
+            .login-screen {
+                display: none !important;
+            }
+            
+            .panel-content {
+                max-height: none !important;
+                overflow: visible !important;
+            }
+            
+            body {
+                background: white !important;
+                color: black !important;
+                padding: 0 !important;
+            }
+            
+            .container {
+                max-width: none !important;
+            }
+            
+            .panel {
+                break-inside: avoid;
+                margin-bottom: 20px;
+                border: 1px solid #000 !important;
+            }
+            
+            .panel-header {
+                background: #000 !important;
+                color: #000 !important;
+                -webkit-print-color-adjust: exact;
+            }
+        }
+        
+        /* ====== LIGHT MODE PREFERENCE ====== */
+        @media (prefers-color-scheme: light) {
+            :root {
+                --card-bg: #ffffff;
+                --gray-dark: #e0e0e0;
+                --primary-white: #333333;
+                --primary-black: #000000;
+                --card-border: #cccccc;
+                --gray-light: #666666;
+            }
+            
+            body {
+                background: #f5f5f5;
+                color: var(--primary-black);
+            }
+            
+            .items-details,
+            .bill-details {
+                border-color: var(--card-border);
+            }
+            
+            .item-detail {
+                border-bottom-color: rgba(0, 0, 0, 0.1);
+                color: var(--primary-black);
+            }
+            
+            .person-bill {
+                border-bottom-color: rgba(0, 0, 0, 0.1);
+                color: var(--primary-black);
+            }
+            
+            .time-badge {
+                background: rgba(0, 0, 0, 0.1);
+                color: var(--primary-black);
+            }
+            
+            .current-time,
+            #connectionStatus {
+                background: rgba(0, 0, 0, 0.1);
+                color: var(--primary-black);
+            }
+            
+            .stat-label {
+                color: var(--gray-light);
+            }
+            
+            .item-id {
+                color: var(--gray-light);
+            }
+            
+            .sound-toggle label {
+                color: var(--gray-light);
+            }
+        }
+        
+        /* ====== EXTRA SMALL DEVICES ====== */
+        @media (max-width: 360px) {
+            .stats {
+                grid-template-columns: 1fr;
+            }
+            
+            .tables-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .header h1 {
+                font-size: 18px;
+            }
+            
+            .panel-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 5px;
+            }
+            
+            .panel-header span:last-child {
+                align-self: flex-start;
+            }
+        }
+        
+        /* ====== LARGE DESKTOP ====== */
+        @media (min-width: 1400px) {
+            .container {
+                padding: 0 20px;
+            }
+            
+            .dashboard {
+                gap: 25px;
+            }
+            
+            .panel-content {
+                max-height: 450px;
+            }
+        }
+        
+        /* ====== TOUCH DEVICE OPTIMIZATIONS ====== */
+        @media (hover: none) and (pointer: coarse) {
+            .btn,
+            .table-action-btn {
+                padding: 12px 15px;
+                min-height: 44px;
+            }
+            
+            .table-card {
+                min-height: 120px;
+            }
+            
+            .actions .btn {
+                min-height: 44px;
+            }
+            
+            /* Remove hover effects for touch devices */
+            .btn:hover,
+            .table-action-btn:hover,
+            .stat-card:hover,
+            .table-card:hover {
+                transform: none;
+                box-shadow: none;
+            }
+        }
+        
+        /* ====== LANDSCAPE ORIENTATION ====== */
+        @media (orientation: landscape) and (max-height: 600px) {
+            .panel-content {
+                max-height: 250px;
+            }
+            
+            .login-screen {
+                padding: 10px;
+            }
+            
+            .login-box {
+                max-width: 350px;
+            }
+        }
+        
+        /* ====== HIGH CONTRAST MODE ====== */
+        @media (prefers-contrast: high) {
+            :root {
+                --primary-yellow: #ffff00;
+                --yellow-dark: #ffa500;
+                --primary-black: #000000;
+                --primary-white: #ffffff;
+            }
+            
+            .btn {
+                border: 3px solid currentColor;
+            }
+            
+            .table-card {
+                border-width: 3px;
+            }
+            
+            .panel-header {
+                border-bottom-width: 4px;
+            }
+            
+            .header {
+                border-width: 3px;
+            }
+        }
+        
+        /* ====== REDUCED MOTION ====== */
+        @media (prefers-reduced-motion: reduce) {
+            *,
+            *::before,
+            *::after {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+            }
+            
+            .elapsed-time.urgent {
+                animation: none;
+                opacity: 1;
+            }
+            
+            .btn:hover,
+            .btn-logout:hover,
+            .table-action-btn:hover,
+            .stat-card:hover {
+                transform: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="loginScreen" class="login-screen">
+        <div class="login-box">
+            <h2>🍀 Bar Irlanda</h2>
+            <p style="margin-bottom: 20px; color: #aaa;">Panel de Administración</p>
+            <input type="password" id="password" placeholder="Contraseña" value="admin123">
+            <button onclick="login()">🔓 Ingresar</button>
+            <div class="sound-toggle">
+                <label>
+                    <input type="checkbox" id="soundEnabled" checked> 🔊 Sonidos de notificación
+                </label>
+            </div>
+        </div>
+    </div>
+    
+    <div id="dashboard" class="container" style="display: none;">
+        <div class="header">
+            <h1>🍀 Panel de Control - Bar Irlanda</h1>
+            <div style="display: flex; align-items: center; gap: 15px;">
+                <div class="current-time" id="currentTime">--:--:--</div>
+                <span id="connectionStatus">🟢 Conectado</span>
+                <button class="btn" onclick="logout()" style="background: #f44336; color: white;">
+                    🔒 Salir
+                </button>
+            </div>
+        </div>
+        
+        <div class="stats" id="stats">
+            <div class="stat-card">
+                <div class="stat-number" id="activeCalls">0</div>
+                <div class="stat-label">Llamadas Activas</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="pendingOrders">0</div>
+                <div class="stat-label">Pedidos Pendientes</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="activeTables">0</div>
+                <div class="stat-label">Mesas Activas</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="pendingBills">0</div>
+                <div class="stat-label">Cuentas Pendientes</div>
+            </div>
+        </div>
+        
+        <div class="dashboard">
+            <!-- PANEL DE LLAMADAS CON TIEMPOS -->
+            <div class="panel">
+                <div class="panel-header">
+                    <span>🖐️ Llamadas al Mozo/a</span>
+                    <span id="callsCount">0 llamadas</span>
+                </div>
+                <div class="panel-content" id="callsList">
+                    <div class="item-empty">No hay llamadas activas</div>
+                </div>
+            </div>
+            
+            <!-- PANEL DE PEDIDOS CON TIEMPOS -->
+            <div class="panel">
+                <div class="panel-header">
+                    <span>📦 Pedidos Pendientes</span>
+                    <span id="ordersCount">0 pedidos</span>
+                </div>
+                <div class="panel-content" id="ordersList">
+                    <div class="item-empty">No hay pedidos pendientes</div>
+                </div>
+            </div>
+            
+            <!-- PANEL DE CUENTAS CON TIEMPOS -->
+            <div class="panel">
+                <div class="panel-header">
+                    <span>💰 Cuentas Solicitadas</span>
+                    <span id="billsCount">0 cuentas</span>
+                </div>
+                <div class="panel-content" id="billsList">
+                    <div class="item-empty">No hay cuentas solicitadas</div>
+                </div>
+            </div>
+            
+            <!-- PANEL DE MESAS CON TIEMPOS -->
+            <div class="panel">
+                <div class="panel-header">
+                    <span>🪑 Mesas (1-10)</span>
+                    <span id="tablesStatus">0/10 ocupadas</span>
+                </div>
+                <div class="panel-content">
+                    <div class="tables-grid" id="tablesGrid">
+                        <!-- Las mesas se generan aquí -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- SONIDOS -->
+    <audio id="soundCall" preload="auto">
+        <source src="https://assets.mixkit.co/sfx/preview/mixkit-correct-answer-tone-2870.mp3" type="audio/mpeg">
+    </audio>
+    <audio id="soundOrder" preload="auto">
+        <source src="https://assets.mixkit.co/sfx/preview/mixkit-software-interface-start-2574.mp3" type="audio/mpeg">
+    </audio>
+    <audio id="soundBill" preload="auto">
+        <source src="https://assets.mixkit.co/sfx/preview/mixkit-cash-register-purchase-875.mp3" type="audio/mpeg">
+    </audio>
+    <audio id="soundServed" preload="auto">
+        <source src="https://assets.mixkit.co/sfx/preview/mixkit-correct-answer-tone-2870.mp3" type="audio/mpeg">
+    </audio>
+    
+    <!-- SOCKET.IO -->
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const socket = io();
+        let calls = [];
+        let orders = [];
+        let bills = [];
+        let tables = [];
+        
+        // Actualizar hora actual
+        function updateCurrentTime() {
+            const now = new Date();
+            const hours = now.getHours().toString().padStart(2, '0');
+            const minutes = now.getMinutes().toString().padStart(2, '0');
+            const seconds = now.getSeconds().toString().padStart(2, '0');
+            document.getElementById('currentTime').textContent = `${hours}:${minutes}:${seconds}`;
+        }
+        
+        setInterval(updateCurrentTime, 1000);
+        updateCurrentTime();
+        
+        function login() {
+            const password = document.getElementById('password').value;
+            socket.emit('join-as-admin', password);
+        }
+        
+        function logout() {
+            document.getElementById('loginScreen').style.display = 'flex';
+            document.getElementById('dashboard').style.display = 'none';
+        }
+        
+        function playSound(soundId) {
+            if (document.getElementById('soundEnabled').checked) {
+                const sound = document.getElementById(soundId);
+                sound.currentTime = 0;
+                sound.play().catch(e => console.log('Error reproduciendo sonido:', e));
+            }
+        }
+        
+        function attendCall(callId) {
+            socket.emit('attend-call', callId);
+        }
+        
+        function markOrderServed(orderId) {
+            socket.emit('mark-order-served', orderId);
+        }
+        
+        function markBillPaid(billId) {
+            socket.emit('mark-bill-paid', billId);
+        }
+        
+        // NUEVA FUNCIÓN: Liberar mesa
+        function freeTable(tableId) {
+            if (confirm(`¿Liberar la mesa ${tableId}? Esto reiniciará el consumo.`)) {
+                socket.emit('free-table', tableId);
+            }
+        }
+        
+        // Función para determinar si es urgente
+        function isUrgent(elapsedTime) {
+            if (!elapsedTime) return false;
+            
+            if (elapsedTime.includes('m')) {
+                const minutes = parseInt(elapsedTime);
+                return minutes >= 5;
+            }
+            
+            return false;
+        }
+        
+        // ======================
+        // RENDER FUNCTIONS CON TIEMPOS
+        // ======================
+        
+        function renderCalls() {
+            const container = document.getElementById('callsList');
+            const activeCalls = calls.filter(c => c.status === 'waiting');
+            
+            document.getElementById('activeCalls').textContent = activeCalls.length;
+            document.getElementById('callsCount').textContent = `${activeCalls.length} llamada${activeCalls.length !== 1 ? 's' : ''}`;
+            
+            if (activeCalls.length === 0) {
+                container.innerHTML = '<div class="item-empty">No hay llamadas activas</div>';
+                return;
+            }
+            
+            let html = '';
+            activeCalls.forEach(call => {
+                const isUrgentCall = isUrgent(call.elapsedTime);
+                
+                html += `
+                    <div class="call-item">
+                        <div class="table-info">🪑 Mesa ${call.tableId}</div>
+                        <div class="item-id">ID: ${call.id}</div>
+                        
+                        <div class="time-display">
+                            <div class="time-badge">⏰ ${call.timeFormatted || '--:--:--'}</div>
+                            <div class="elapsed-time ${isUrgentCall ? 'urgent' : ''}">
+                                ⏱️ ${call.elapsedTime || '0s'}
+                            </div>
+                        </div>
+                        
+                        <div><strong>Motivo:</strong> ${call.reason}</div>
+                        
+                        <div class="actions">
+                            <button class="btn btn-attend" onclick="attendCall(${call.id})">
+                                ✓ Atendida
+                            </button>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            container.innerHTML = html;
+        }
+        
+        function renderOrders() {
+            const container = document.getElementById('ordersList');
+            const pendingOrders = orders.filter(o => o.status === 'pending');
+            
+            document.getElementById('pendingOrders').textContent = pendingOrders.length;
+            document.getElementById('ordersCount').textContent = `${pendingOrders.length} pedido${pendingOrders.length !== 1 ? 's' : ''}`;
+            
+            if (pendingOrders.length === 0) {
+                container.innerHTML = '<div class="item-empty">No hay pedidos pendientes</div>';
+                return;
+            }
+            
+            let html = '';
+            pendingOrders.forEach(order => {
+                const isUrgentOrder = isUrgent(order.elapsedTime);
+                let itemsHtml = '';
+                
+                order.items.forEach(item => {
+                    itemsHtml += `
+                        <div class="item-detail">
+                            <span>
+                                ${item.quantity}x ${item.name}
+                                ${item.person && item.person !== 'Todos' ? 
+                                  `<span class="person-tag">${item.person}</span>` : ''}
+                                ${item.notes ? `<br><small style="color: #aaa;">📝 ${item.notes}</small>` : ''}
+                                ${item.addedAtFormatted ? `<br><small style="color: #888;">🕒 ${item.addedAtFormatted}</small>` : ''}
+                            </span>
+                            <span>$${(item.price * item.quantity).toFixed(2)}</span>
+                        </div>
+                    `;
+                });
+                
+                html += `
+                    <div class="order-item">
+                        <div class="table-info">🪑 Mesa ${order.tableId}</div>
+                        <div class="item-id">Pedido #${order.id}</div>
+                        
+                        <div class="time-display">
+                            <div class="time-badge">📥 ${order.createdAtFormatted || '--:--:--'}</div>
+                            <div class="elapsed-time ${isUrgentOrder ? 'urgent' : ''}">
+                                ⏱️ ${order.elapsedTime || '0s'}
+                            </div>
+                        </div>
+                        
+                        <div class="items-details">
+                            ${itemsHtml}
+                            <div class="item-detail" style="border-top: 2px solid #444; margin-top: 5px; padding-top: 5px;">
+                                <span><strong>TOTAL:</strong></span>
+                                <span><strong>$${order.total.toFixed(2)}</strong></span>
+                            </div>
+                        </div>
+                        
+                        ${order.split ? `
+                            <div style="margin-top: 8px; font-size: 13px; color: #aaa;">
+                                📝 Cuenta separada: ${order.people ? order.people.join(', ') : ''}
+                            </div>
+                        ` : ''}
+                        
+                        <div class="actions">
+                            <button class="btn btn-served" onclick="markOrderServed(${order.id})">
+                                ✅ Marcar como servido
+                            </button>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            container.innerHTML = html;
+        }
+        
+        function renderBills() {
+            const container = document.getElementById('billsList');
+            const pendingBills = bills.filter(b => b.status === 'pending');
+            
+            document.getElementById('pendingBills').textContent = pendingBills.length;
+            document.getElementById('billsCount').textContent = `${pendingBills.length} cuenta${pendingBills.length !== 1 ? 's' : ''}`;
+            
+            if (pendingBills.length === 0) {
+                container.innerHTML = '<div class="item-empty">No hay cuentas solicitadas</div>';
+                return;
+            }
+            
+            let html = '';
+            
+            pendingBills.forEach(bill => {
+                const isUrgentBill = isUrgent(bill.elapsedTime);
+                const total = bill.total || 0;
+                
+                let itemsHtml = '';
+                if (bill.items && bill.items.length > 0) {
+                    bill.items.forEach(item => {
+                        const itemPrice = parseFloat(item.price) || 0;
+                        const itemQuantity = parseInt(item.quantity) || 0;
+                        const itemTotal = itemPrice * itemQuantity;
+                        
+                        itemsHtml += `
+                            <div class="item-detail">
+                                <span>
+                                    ${itemQuantity}x ${item.name || 'Producto'}
+                                    ${item.person && item.person !== 'Todos' ? 
+                                        `<span class="person-tag">${item.person}</span>` : ''}
+                                    ${item.status === 'served' ? '<span class="served-indicator">✓</span>' : ''}
+                                    ${item.timeAdded ? `<br><small style="color: #888;">🕒 ${item.timeAdded}</small>` : ''}
+                                </span>
+                                <span>$${itemTotal.toFixed(2)}</span>
+                            </div>
+                        `;
+                    });
+                }
+                
+                html += `
+                    <div class="bill-item">
+                        <div class="table-info">🪑 Mesa ${bill.tableId || '?'}</div>
+                        <div class="item-id">Cuenta #${bill.id || '?'}</div>
+                        
+                        <div class="time-display">
+                            <div class="time-badge">💰 ${bill.requestedAtFormatted || '--:--:--'}</div>
+                            <div class="elapsed-time ${isUrgentBill ? 'urgent' : ''}">
+                                ⏱️ ${bill.elapsedTime || '0s'}
+                            </div>
+                        </div>
+                        
+                        <div class="items-details">
+                            ${itemsHtml || '<div class="item-detail" style="color: #aaa; font-style: italic;"><span>Sin items</span><span>$0.00</span></div>'}
+                            <div class="item-detail" style="border-top: 2px solid #444; margin-top: 10px; padding-top: 10px; font-weight: bold;">
+                                <span>TOTAL:</span>
+                                <span>$${total.toFixed(2)}</span>
+                            </div>
+                        </div>
+                        
+                        ${bill.split && bill.perPerson ? `
+                            <div class="bill-details">
+                                <strong>Por persona:</strong>
+                                ${Object.keys(bill.perPerson).map(person => {
+                                    const amount = bill.perPerson[person] || 0;
+                                    return `
+                                        <div class="person-bill">
+                                            <span>👤 ${person}</span>
+                                            <span>$${amount.toFixed(2)}</span>
+                                        </div>
+                                    `;
+                                }).join('')}
+                            </div>
+                        ` : ''}
+                        
+                        <div class="actions">
+                            <button class="btn btn-paid" onclick="markBillPaid(${bill.id})">
+                                💳 Marcar como pagada
+                            </button>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            container.innerHTML = html;
+        }
+        
+        function renderTables() {
+            const container = document.getElementById('tablesGrid');
+            let html = '';
+            let occupied = 0;
+            
+            const sortedTables = [...tables].sort((a, b) => a.id - b.id);
+            
+            sortedTables.forEach(table => {
+                const statusClass = table.status || 'available';
+                const isOccupied = statusClass !== 'available';
+                
+                if (isOccupied) occupied++;
+                
+                let icon = '🪑';
+                if (statusClass === 'active') icon = '📱';
+                if (statusClass === 'ordering') icon = '🛒';
+                if (statusClass === 'waiting') icon = '⏳';
+                if (statusClass === 'served') icon = '🍽️';
+                if (statusClass === 'paying') icon = '💰';
+                if (statusClass === 'paid_but_occupied') icon = '💰';
+                
+                // Calcular consumo
+                const servedItems = table.servedItems || [];
+                const pendingItems = table.pendingCart || [];
+                const totalServed = servedItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+                const totalPending = pendingItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+                const total = totalServed + totalPending;
+                
+                // Obtener texto del estado
+                let statusText = getStatusText(statusClass);
+                let actionButton = '';
+                
+                // Si la mesa está pagada pero ocupada, mostrar botón para liberar
+                if (statusClass === 'paid_but_occupied') {
+                    statusText = '💰 PAGADO (ocupada)';
+                    actionButton = `
+                        <button class="table-action-btn" onclick="freeTable(${table.id})">
+                            🧹 Liberar Mesa
+                        </button>
+                    `;
+                }
+                
+                html += `
+                    <div class="table-card ${statusClass}">
+                        <div class="table-icon">${icon}</div>
+                        <div class="table-number">Mesa ${table.id}</div>
+                        <div class="table-status">
+                            ${statusText}
+                        </div>
+                        ${table.people && table.people.length > 0 ? `
+                            <div class="table-people">
+                                ${table.people.length} persona${table.people.length !== 1 ? 's' : ''}
+                            </div>
+                        ` : ''}
+
+                        ${actionButton}
+                    </div>
+                `;
+            });
+            
+            container.innerHTML = html;
+            document.getElementById('activeTables').textContent = occupied;
+            document.getElementById('tablesStatus').textContent = `${occupied}/10 ocupadas`;
+        }
+        
+        function formatShortTime(date) {
+            if (!date) return '';
+            const d = new Date(date);
+            const hours = d.getHours().toString().padStart(2, '0');
+            const minutes = d.getMinutes().toString().padStart(2, '0');
+            return `${hours}:${minutes}`;
+        }
+        
+        function getStatusText(status) {
+            const statusMap = {
+                'available': 'Disponible',
+                'active': 'Activa',
+                'ordering': 'Pidiendo',
+                'waiting': 'Esperando',
+                'served': 'Servido',
+                'paying': 'Pagando',
+                'paid_but_occupied': 'Pagada (ocupada)'
+            };
+            return statusMap[status] || status;
+        }
+        
+        function showBrowserNotification(title, body) {
+            if (Notification.permission === 'granted') {
+                new Notification(title, {
+                    body: body,
+                    icon: '🍀'
+                });
+            } else if (Notification.permission === 'default') {
+                Notification.requestPermission();
+            }
+        }
+        
+        // ======================
+        // SOCKET.IO LISTENERS
+        // ======================
+        
+        socket.on('admin-connected', function(data) {
+            document.getElementById('loginScreen').style.display = 'none';
+            document.getElementById('dashboard').style.display = 'block';
+            
+            calls = data.calls;
+            orders = data.orders;
+            bills = data.bills;
+            tables = data.tables;
+            
+            renderCalls();
+            renderOrders();
+            renderBills();
+            renderTables();
+        });
+        
+        socket.on('new-call', function(call) {
+            calls.push(call);
+            renderCalls();
+            playSound('soundCall');
+            showBrowserNotification(`🍀 Llamada Mesa ${call.tableId}`, `Hora: ${call.timeFormatted}`);
+        });
+        
+        socket.on('call-attended', function(callId) {
+            const call = calls.find(c => c.id === callId);
+            if (call) {
+                call.status = 'attended';
+            }
+            renderCalls();
+        });
+        
+        socket.on('new-order', function(order) {
+            orders.push(order);
+            renderOrders();
+            playSound('soundOrder');
+            showBrowserNotification(`🍀 Nuevo Pedido`, `Mesa ${order.tableId} - ${order.createdAtFormatted}`);
+        });
+        
+        socket.on('order-served', function(data) {
+            const orderIndex = orders.findIndex(o => o.id === data.orderId);
+            if (orderIndex !== -1) {
+                orders.splice(orderIndex, 1);
+            }
+            renderOrders();
+            playSound('soundServed');
+            showBrowserNotification(`🍀 Pedido Servido`, `Mesa ${data.tableId} - ${data.serveTime}`);
+        });
+        
+        socket.on('bill-requested', function(bill) {
+            bills.push(bill);
+            renderBills();
+            playSound('soundBill');
+            showBrowserNotification(`🍀 Cuenta Solicitada`, `Mesa ${bill.tableId} - ${bill.requestedAtFormatted}`);
+        });
+        
+        socket.on('bill-paid', function(billId) {
+            const billIndex = bills.findIndex(b => b.id === billId);
+            if (billIndex !== -1) {
+                bills[billIndex].status = 'paid';
+            }
+            renderBills();
+        });
+        
+        socket.on('table-updated', function(table) {
+            const tableIndex = tables.findIndex(t => t.id === table.id);
+            if (tableIndex !== -1) {
+                tables[tableIndex] = table;
+            } else {
+                tables.push(table);
+            }
+            renderTables();
+        });
+        
+        socket.on('table-freed', function(table) {
+            const tableIndex = tables.findIndex(t => t.id === table.id);
+            if (tableIndex !== -1) {
+                tables[tableIndex] = table;
+            }
+            renderTables();
+            showBrowserNotification(`🍀 Mesa Liberada`, `Mesa ${table.id} disponible`);
+        });
+        
+        socket.on('times-updated', function(data) {
+            data.calls.forEach(updatedCall => {
+                const callIndex = calls.findIndex(c => c.id === updatedCall.id);
+                if (callIndex !== -1) {
+                    calls[callIndex].elapsedTime = updatedCall.elapsedTime;
+                }
+            });
+            
+            data.orders.forEach(updatedOrder => {
+                const orderIndex = orders.findIndex(o => o.id === updatedOrder.id);
+                if (orderIndex !== -1) {
+                    orders[orderIndex].elapsedTime = updatedOrder.elapsedTime;
+                }
+            });
+            
+            data.bills.forEach(updatedBill => {
+                const billIndex = bills.findIndex(b => b.id === updatedBill.id);
+                if (billIndex !== -1) {
+                    bills[billIndex].elapsedTime = updatedBill.elapsedTime;
+                }
+            });
+            
+            renderCalls();
+            renderOrders();
+            renderBills();
+        });
+        
+        if (Notification.permission === 'default') {
+            Notification.requestPermission();
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,7 @@
+[build]
+  publish = "public"
+
+[[redirects]]
+  from = "/*"
+  to = "/cliente.html"
+  status = 200
