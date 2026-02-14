@@ -1468,12 +1468,12 @@ body {
     <div class="notification" id="notification"></div>
     
     <!-- SOCKET.IO -->
-    <script src="/socket.io/socket.io.js"></script>
+    <script src="https://bar-irlanda-backend.onrender.com/socket.io/socket.io.js"></script>
     <script>
         // ======================
         // VARIABLES GLOBALES
         // ======================
-        const socket = io();
+        const socket = io('https://bar-irlanda-backend.onrender.com');
         let currentTable = 1;
         let selectedPerson = 0;
         let selectedCategory = 'all';
@@ -2448,7 +2448,7 @@ function updateModalTotalPrice() {
             socket.emit('join-table', currentTable);
             
             // Cargar menú
-            fetch('https://bar-backend.onrender.com/api/menu')
+            fetch('https://bar-irlanda-backend.onrender.com/api/menu')
                 .then(response => response.json())
                 .then(data => {
                     menuData = data;

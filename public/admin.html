@@ -1171,7 +1171,11 @@
             <h1>🍀 Panel de Control - Bar Irlanda</h1>
             <div style="display: flex; align-items: center; gap: 15px;">
                 <div class="current-time" id="currentTime">--:--:--</div>
+                <!-- admin.html - Dentro del header, después de connectionStatus -->
                 <span id="connectionStatus">🟢 Conectado</span>
+                <button class="btn" onclick="forceReconnect()" style="background: #ff9800; color: white; margin-left: 10px; padding: 5px 10px; font-size: 12px;">
+                    🔄 Reconectar
+                </button>
                 <button class="btn" onclick="logout()" style="background: #f44336; color: white;">
                     🔒 Salir
                 </button>
@@ -1261,14 +1265,102 @@
     </audio>
     
     <!-- SOCKET.IO -->
-    <script src="/socket.io/socket.io.js"></script>
+    <script src="https://bar-irlanda-backend.onrender.com/socket.io/socket.io.js"></script>
     <script>
-        const socket = io();
+        const socket = io('https://bar-irlanda-backend.onrender.com', {
+    reconnection: true,
+    reconnectionAttempts: Infinity,
+    reconnectionDelay: 1000,
+    reconnectionDelayMax: 5000,
+    timeout: 20000,
+    transports: ['websocket', 'polling']
+    });
         let calls = [];
         let orders = [];
         let bills = [];
         let tables = [];
+
+        // FUNCIÓN PARA FORZAR HORA ARGENTINA (SIMPLE: devuelve lo mismo que llega)
+function formatArgentinaTime(timeString) {
+    // La hora ya viene formateada del servidor, la mostramos tal cual
+    return timeString;
+}
+
+        // SISTEMA DE HEARTBEAT Y RECONEXIÓN
+let lastPong = Date.now();
+let connectionChecker = null;
+let reconnectAttempts = 0;
+
+// Enviar ping cada 30 segundos
+setInterval(() => {
+    if (socket.connected) {
+        socket.emit('ping');
+        console.log('📤 Ping enviado', new Date().toLocaleTimeString());
+    }
+}, 30000);
+
+// Escuchar pong del servidor
+socket.on('pong', (timestamp) => {
+    lastPong = Date.now();
+    console.log('📥 Pong recibido', new Date().toLocaleTimeString());
+    document.getElementById('connectionStatus').innerHTML = '🟢 Conectado';
+    document.getElementById('connectionStatus').style.backgroundColor = 'rgba(76, 175, 80, 0.2)';
+    reconnectAttempts = 0;
+});
+
+// Verificar conexión cada 10 segundos
+connectionChecker = setInterval(() => {
+    const timeSinceLastPong = Date.now() - lastPong;
+    
+    if (timeSinceLastPong > 45000) { // 45 segundos sin respuesta
+        console.warn('⚠️ Posible conexión perdida - intentando reconectar...');
+        document.getElementById('connectionStatus').innerHTML = '🔴 Reconectando...';
+        document.getElementById('connectionStatus').style.backgroundColor = 'rgba(244, 67, 54, 0.2)';
         
+        if (!socket.connected) {
+            socket.connect();
+        }
+    }
+}, 10000);
+
+// Eventos de conexión/desconexión
+socket.on('connect', () => {
+    console.log('✅ Conectado al servidor');
+    document.getElementById('connectionStatus').innerHTML = '🟢 Conectado';
+    document.getElementById('connectionStatus').style.backgroundColor = 'rgba(76, 175, 80, 0.2)';
+    lastPong = Date.now();
+    
+    // Si ya estábamos logueados, reintentar login
+    if (document.getElementById('dashboard').style.display === 'block') {
+        const password = document.getElementById('password').value;
+        socket.emit('join-as-admin', password);
+    }
+});
+
+socket.on('disconnect', (reason) => {
+    console.log('🔴 Desconectado:', reason);
+    document.getElementById('connectionStatus').innerHTML = '🔴 Desconectado';
+    document.getElementById('connectionStatus').style.backgroundColor = 'rgba(244, 67, 54, 0.2)';
+    
+    if (reason === 'io server disconnect' || reason === 'transport close') {
+        // El servidor cerró la conexión, intentar reconectar
+        setTimeout(() => {
+            socket.connect();
+        }, 1000);
+    }
+});
+
+socket.on('connect_error', (error) => {
+    console.error('❌ Error de conexión:', error);
+    document.getElementById('connectionStatus').innerHTML = '🔴 Error de conexión';
+    document.getElementById('connectionStatus').style.backgroundColor = 'rgba(244, 67, 54, 0.2)';
+});
+        
+
+
+
+    
+
         // Actualizar hora actual
         function updateCurrentTime() {
             const now = new Date();
@@ -1310,6 +1402,19 @@
         function markBillPaid(billId) {
             socket.emit('mark-bill-paid', billId);
         }
+
+        // admin.html - Función de reconexión manual
+function forceReconnect() {
+    document.getElementById('connectionStatus').innerHTML = '🔄 Reconectando...';
+    document.getElementById('connectionStatus').style.backgroundColor = 'rgba(255, 152, 0, 0.2)';
+    
+    if (socket.connected) {
+        socket.disconnect();
+    }
+    setTimeout(() => {
+        socket.connect();
+    }, 500);
+}
         
         // NUEVA FUNCIÓN: Liberar mesa
         function freeTable(tableId) {
@@ -1356,11 +1461,10 @@
                         <div class="item-id">ID: ${call.id}</div>
                         
                         <div class="time-display">
-                            <div class="time-badge">⏰ ${call.timeFormatted || '--:--:--'}</div>
-                            <div class="elapsed-time ${isUrgentCall ? 'urgent' : ''}">
-                                ⏱️ ${call.elapsedTime || '0s'}
-                            </div>
-                        </div>
+    <div class="elapsed-time ${isUrgentCall ? 'urgent' : ''}">
+        ⏱️ ${call.elapsedTime || '0s'}
+    </div>
+</div>
                         
                         <div><strong>Motivo:</strong> ${call.reason}</div>
                         
@@ -1397,12 +1501,12 @@
                     itemsHtml += `
                         <div class="item-detail">
                             <span>
-                                ${item.quantity}x ${item.name}
-                                ${item.person && item.person !== 'Todos' ? 
-                                  `<span class="person-tag">${item.person}</span>` : ''}
-                                ${item.notes ? `<br><small style="color: #aaa;">📝 ${item.notes}</small>` : ''}
-                                ${item.addedAtFormatted ? `<br><small style="color: #888;">🕒 ${item.addedAtFormatted}</small>` : ''}
-                            </span>
+    ${item.quantity}x ${item.name}
+    ${item.person && item.person !== 'Todos' ? 
+      `<span class="person-tag">${item.person}</span>` : ''}
+    ${item.notes ? `<br><small style="color: #aaa;">📝 ${item.notes}</small>` : ''}
+
+</span>
                             <span>$${(item.price * item.quantity).toFixed(2)}</span>
                         </div>
                     `;
@@ -1414,11 +1518,10 @@
                         <div class="item-id">Pedido #${order.id}</div>
                         
                         <div class="time-display">
-                            <div class="time-badge">📥 ${order.createdAtFormatted || '--:--:--'}</div>
-                            <div class="elapsed-time ${isUrgentOrder ? 'urgent' : ''}">
-                                ⏱️ ${order.elapsedTime || '0s'}
-                            </div>
-                        </div>
+    <div class="elapsed-time ${isUrgentOrder ? 'urgent' : ''}">
+        ⏱️ ${order.elapsedTime || '0s'}
+    </div>
+</div>
                         
                         <div class="items-details">
                             ${itemsHtml}
@@ -1474,12 +1577,12 @@
                         itemsHtml += `
                             <div class="item-detail">
                                 <span>
-                                    ${itemQuantity}x ${item.name || 'Producto'}
-                                    ${item.person && item.person !== 'Todos' ? 
-                                        `<span class="person-tag">${item.person}</span>` : ''}
-                                    ${item.status === 'served' ? '<span class="served-indicator">✓</span>' : ''}
-                                    ${item.timeAdded ? `<br><small style="color: #888;">🕒 ${item.timeAdded}</small>` : ''}
-                                </span>
+    ${itemQuantity}x ${item.name || 'Producto'}
+    ${item.person && item.person !== 'Todos' ? 
+        `<span class="person-tag">${item.person}</span>` : ''}
+    ${item.status === 'served' ? '<span class="served-indicator">✓</span>' : ''}
+    
+</span>
                                 <span>$${itemTotal.toFixed(2)}</span>
                             </div>
                         `;
@@ -1492,11 +1595,10 @@
                         <div class="item-id">Cuenta #${bill.id || '?'}</div>
                         
                         <div class="time-display">
-                            <div class="time-badge">💰 ${bill.requestedAtFormatted || '--:--:--'}</div>
-                            <div class="elapsed-time ${isUrgentBill ? 'urgent' : ''}">
-                                ⏱️ ${bill.elapsedTime || '0s'}
-                            </div>
-                        </div>
+    <div class="elapsed-time ${isUrgentBill ? 'urgent' : ''}">
+        ⏱️ ${bill.elapsedTime || '0s'}
+    </div>
+</div>
                         
                         <div class="items-details">
                             ${itemsHtml || '<div class="item-detail" style="color: #aaa; font-style: italic;"><span>Sin items</span><span>$0.00</span></div>'}
@@ -1653,7 +1755,7 @@
             calls.push(call);
             renderCalls();
             playSound('soundCall');
-            showBrowserNotification(`🍀 Llamada Mesa ${call.tableId}`, `Hora: ${call.timeFormatted}`);
+            showBrowserNotification(`🍀 Llamada Mesa ${call.tableId}`,);
         });
         
         socket.on('call-attended', function(callId) {
@@ -1668,7 +1770,7 @@
             orders.push(order);
             renderOrders();
             playSound('soundOrder');
-            showBrowserNotification(`🍀 Nuevo Pedido`, `Mesa ${order.tableId} - ${order.createdAtFormatted}`);
+            showBrowserNotification(`🍀 Nuevo Pedido`, `Mesa ${order.tableId}`);
         });
         
         socket.on('order-served', function(data) {
@@ -1678,14 +1780,14 @@
             }
             renderOrders();
             playSound('soundServed');
-            showBrowserNotification(`🍀 Pedido Servido`, `Mesa ${data.tableId} - ${data.serveTime}`);
+            showBrowserNotification(`🍀 Pedido Servido`, `Mesa ${data.tableId}`);
         });
         
         socket.on('bill-requested', function(bill) {
             bills.push(bill);
             renderBills();
             playSound('soundBill');
-            showBrowserNotification(`🍀 Cuenta Solicitada`, `Mesa ${bill.tableId} - ${bill.requestedAtFormatted}`);
+            showBrowserNotification(`🍀 Cuenta Solicitada`, `Mesa ${bill.tableId}`);
         });
         
         socket.on('bill-paid', function(billId) {

@@ -1,25 +1,92 @@
-// server.js - VERSIÓN CON TIEMPOS PRECISOS
+// server.js - VERSIÓN FINAL CON PERSISTENCIA PARA RENDER Y HORA ARGENTINA
 const express = require('express');
 const http = require('http');
 const socketIo = require('socket.io');
 const cors = require('cors');
+const fs = require('fs');
+const path = require('path');
+const https = require('https');
 
 const app = express();
 const server = http.createServer(app);
+
+// ======================
+// FUNCIONES DE ZONA HORARIA (ARGENTINA)
+// ======================
+function getLocalTime(date = new Date()) {
+    try {
+        // Usar Intl.DateTimeFormat para Argentina
+        const formatter = new Intl.DateTimeFormat('es-AR', {
+            timeZone: 'America/Argentina/Buenos_Aires',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+            hour12: false
+        });
+        
+        const parts = formatter.formatToParts(date);
+        const timeObj = {};
+        
+        parts.forEach(part => {
+            if (part.type !== 'literal') {
+                timeObj[part.type] = part.value;
+            }
+        });
+        
+        // Fallback si algo falla
+        if (!timeObj.hour || !timeObj.minute || !timeObj.second) {
+            const d = new Date(date);
+            // Ajustar manualmente para Argentina (UTC-3)
+            const utcHours = d.getUTCHours();
+            let argentinaHours = utcHours - 3;
+            if (argentinaHours < 0) argentinaHours += 24;
+            
+            return `${argentinaHours.toString().padStart(2, '0')}:${d.getUTCMinutes().toString().padStart(2, '0')}:${d.getUTCSeconds().toString().padStart(2, '0')}`;
+        }
+        
+        return `${timeObj.hour}:${timeObj.minute}:${timeObj.second}`;
+    } catch (e) {
+        console.error('Error en getLocalTime:', e);
+        // Fallback simple
+        const d = new Date(date);
+        return `${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}:${d.getSeconds().toString().padStart(2, '0')}`;
+    }
+}
+
+// ======================
+// CONFIGURACIÓN SOCKET.IO
+// ======================
 const io = socketIo(server, {
-  pingTimeout: 60000,
-  pingInterval: 25000,
+  pingTimeout: 300000,      // 5 MINUTOS
+  pingInterval: 50000,      // 50 segundos entre pings
   cors: {
     origin: "*",
     methods: ["GET", "POST"],
     credentials: true
-  }
+  },
+  transports: ['websocket', 'polling'],
+  allowEIO3: true,
+  connectTimeout: 45000,
+  maxHttpBufferSize: 1e8
 });
+
 // ======================
-// DATOS DEL BAR IRLANDA - MENÚ COMPLETO CON IMÁGENES
+// CONFIGURACIÓN EXPRESS
+// ======================
+app.use(cors());
+app.use(express.static('public'));
+app.use(express.json());
+
+// ======================
+// SISTEMA DE PERSISTENCIA PARA RENDER
+// ======================
+const STATE_BACKUP_FILE = path.join(__dirname, 'state-backup.json');
+const BACKUP_INTERVAL = 60000; // Guardar cada minuto
+
+// ======================
+// DATOS DEL BAR IRLANDA - MENÚ COMPLETO
 // ======================
 const menu = [
-  // ====== CERVEZAS ======
   {
     id: 1,
     name: "Guinness",
@@ -40,8 +107,6 @@ const menu = [
     popular: true,
     isDrink: true
   },
-  
-  // ====== GASEOSAS ======
   {
     id: 3,
     name: "Coca Cola",
@@ -62,8 +127,6 @@ const menu = [
     popular: false,
     isDrink: true
   },
-  
-  // ====== WHISKIES ======
   {
     id: 5,
     name: "Jameson Original",
@@ -104,38 +167,36 @@ const menu = [
     popular: true,
     isDrink: true
   },
-  
-  // ====== TRAGOS ======
   {
     id: 9,
-  name: "Fernet Branca - Medida",
-  description: "Un trago de Fernet puro",
-  price: 5.00,
-  category: "Tragos",
-  image: "https://acdn-us.mitiendanube.com/stores/001/157/846/products/copia-de-diseno-sin-nombre-2022-03-09t092828-1171-9b758b71490a1fc23b16468289376800-1024-1024.webp",
-  popular: true,
-  isDrink: true
-},
-{
-  id: 23,
-  name: "Fernet Branca - Preparado Chico",
-  description: "Fernet con cola - vaso chico",
-  price: 8.00,
-  category: "Tragos",
-  image: "https://acdn-us.mitiendanube.com/stores/001/157/846/products/copia-de-diseno-sin-nombre-2022-03-09t092828-1171-9b758b71490a1fc23b16468289376800-1024-1024.webp",
-  popular: true,
-  isDrink: true
-},
-{
-  id: 24,
-  name: "Fernet Branca - Preparado Grande",
-  description: "Fernet con cola - vaso grande",
-  price: 12.00,
-  category: "Tragos",
-  image: "https://acdn-us.mitiendanube.com/stores/001/157/846/products/copia-de-diseno-sin-nombre-2022-03-09t092828-1171-9b758b71490a1fc23b16468289376800-1024-1024.webp",
-  popular: true,
-  isDrink: true
-},
+    name: "Fernet Branca - Medida",
+    description: "Un trago de Fernet puro",
+    price: 5.00,
+    category: "Tragos",
+    image: "https://acdn-us.mitiendanube.com/stores/001/157/846/products/copia-de-diseno-sin-nombre-2022-03-09t092828-1171-9b758b71490a1fc23b16468289376800-1024-1024.webp",
+    popular: true,
+    isDrink: true
+  },
+  {
+    id: 23,
+    name: "Fernet Branca - Preparado Chico",
+    description: "Fernet con cola - vaso chico",
+    price: 8.00,
+    category: "Tragos",
+    image: "https://acdn-us.mitiendanube.com/stores/001/157/846/products/copia-de-diseno-sin-nombre-2022-03-09t092828-1171-9b758b71490a1fc23b16468289376800-1024-1024.webp",
+    popular: true,
+    isDrink: true
+  },
+  {
+    id: 24,
+    name: "Fernet Branca - Preparado Grande",
+    description: "Fernet con cola - vaso grande",
+    price: 12.00,
+    category: "Tragos",
+    image: "https://acdn-us.mitiendanube.com/stores/001/157/846/products/copia-de-diseno-sin-nombre-2022-03-09t092828-1171-9b758b71490a1fc23b16468289376800-1024-1024.webp",
+    popular: true,
+    isDrink: true
+  },
   {
     id: 10,
     name: "Champagne Novecento",
@@ -156,8 +217,6 @@ const menu = [
     popular: false,
     isDrink: true
   },
-  
-  // ====== PIZZAS ======
   {
     id: 12,
     name: "Pizza Muzzarella",
@@ -188,8 +247,6 @@ const menu = [
     popular: false,
     isDrink: false
   },
-  
-  // ====== ENSALADAS ======
   {
     id: 15,
     name: "Ensalada Gourmet",
@@ -210,8 +267,6 @@ const menu = [
     popular: true,
     isDrink: false
   },
-  
-  // ====== PICADAS ======
   {
     id: 17,
     name: "Irish Bot - Picada Chica",
@@ -222,8 +277,6 @@ const menu = [
     popular: true,
     isDrink: false
   },
-  
-  // ====== PAPAS ======
   {
     id: 18,
     name: "Papas Originales",
@@ -244,7 +297,6 @@ const menu = [
     popular: true,
     isDrink: false
   },
-
   {
     id: 25,
     name: "Papas a la Crema",
@@ -255,8 +307,6 @@ const menu = [
     popular: true,
     isDrink: false
   },
-  
-  // ====== EMPANADAS ======
   {
     id: 20,
     name: "Empanada de Carne",
@@ -290,7 +340,7 @@ const menu = [
 ];
 
 // ======================
-// ESTADO DEL SISTEMA - CON TIEMPOS PRECISOS
+// ESTADO DEL SISTEMA
 // ======================
 const state = {
   tables: {},
@@ -299,7 +349,7 @@ const state = {
   bills: []
 };
 
-// Inicializar 10 mesas CON TIEMPOS PRECISOS
+// Inicializar 10 mesas
 for (let i = 1; i <= 10; i++) {
   state.tables[i] = {
     id: i,
@@ -311,7 +361,6 @@ for (let i = 1; i <= 10; i++) {
     currentTotal: 0,
     lastActivity: new Date(),
     consumptionByPerson: {},
-    // Nuevo: tiempos de actividad
     timestamps: {
       lastOrder: null,
       lastCall: null,
@@ -322,7 +371,89 @@ for (let i = 1; i <= 10; i++) {
 }
 
 // ======================
-// FUNCIONES UTILES - CON FORMATO DE TIEMPO
+// FUNCIONES DE PERSISTENCIA
+// ======================
+function saveStateToDisk() {
+  try {
+    const stateToSave = {
+      tables: state.tables,
+      calls: state.calls.filter(c => c.status === 'waiting'),
+      orders: state.orders.filter(o => o.status === 'pending'),
+      bills: state.bills.filter(b => b.status === 'pending'),
+      lastBackup: new Date().toISOString()
+    };
+    
+    fs.writeFileSync(STATE_BACKUP_FILE, JSON.stringify(stateToSave, null, 2));
+    console.log('💾 Estado guardado en disco:', new Date().toLocaleTimeString());
+  } catch (err) {
+    console.error('Error guardando estado:', err);
+  }
+}
+
+function loadStateFromDisk() {
+  try {
+    if (fs.existsSync(STATE_BACKUP_FILE)) {
+      const data = fs.readFileSync(STATE_BACKUP_FILE, 'utf8');
+      const savedState = JSON.parse(data);
+      
+      // Restaurar mesas
+      if (savedState.tables) {
+        Object.keys(savedState.tables).forEach(key => {
+          if (state.tables[key]) {
+            // Restaurar solo los datos activos, mantener estructura
+            state.tables[key].pendingCart = savedState.tables[key].pendingCart || [];
+            state.tables[key].servedItems = savedState.tables[key].servedItems || [];
+            state.tables[key].split = savedState.tables[key].split || false;
+            state.tables[key].people = savedState.tables[key].people || [];
+            state.tables[key].status = savedState.tables[key].status || 'available';
+            state.tables[key].currentTotal = savedState.tables[key].currentTotal || 0;
+            state.tables[key].consumptionByPerson = savedState.tables[key].consumptionByPerson || {};
+            
+            // Restaurar timestamps como objetos Date
+            if (savedState.tables[key].lastActivity) {
+              state.tables[key].lastActivity = new Date(savedState.tables[key].lastActivity);
+            }
+          }
+        });
+      }
+      
+      // Restaurar calls activos
+      if (savedState.calls) {
+        state.calls = savedState.calls.map(call => ({
+          ...call,
+          time: new Date(call.time),
+          lastBackup: call.lastBackup ? new Date(call.lastBackup) : undefined
+        }));
+      }
+      
+      // Restaurar orders activos
+      if (savedState.orders) {
+        state.orders = savedState.orders.map(order => ({
+          ...order,
+          createdAt: new Date(order.createdAt)
+        }));
+      }
+      
+      // Restaurar bills activos
+      if (savedState.bills) {
+        state.bills = savedState.bills.map(bill => ({
+          ...bill,
+          requestedAt: new Date(bill.requestedAt)
+        }));
+      }
+      
+      console.log('📂 Estado restaurado desde disco:', new Date().toLocaleTimeString());
+      console.log(`   - ${state.calls.length} llamadas activas`);
+      console.log(`   - ${state.orders.length} pedidos pendientes`);
+      console.log(`   - ${state.bills.length} cuentas pendientes`);
+    }
+  } catch (err) {
+    console.error('Error cargando estado:', err);
+  }
+}
+
+// ======================
+// FUNCIONES UTILES
 // ======================
 function calculateTotal(items) {
   return parseFloat(items.reduce((sum, item) => {
@@ -354,16 +485,11 @@ function calculateConsumptionByPerson(table) {
   return consumption;
 }
 
-// FUNCIÓN PARA FORMATAR TIEMPO EXACTO
+// FUNCIÓN FORMAT TIME CORREGIDA (USA getLocalTime)
 function formatTime(date) {
-  const d = new Date(date);
-  const hours = d.getHours().toString().padStart(2, '0');
-  const minutes = d.getMinutes().toString().padStart(2, '0');
-  const seconds = d.getSeconds().toString().padStart(2, '0');
-  return `${hours}:${minutes}:${seconds}`;
+  return getLocalTime(date);
 }
 
-// FUNCIÓN PARA CALCULAR TIEMPO TRANSCURRIDO
 function calculateElapsedTime(startTime) {
   if (!startTime) return '0s';
   
@@ -386,14 +512,29 @@ function calculateElapsedTime(startTime) {
 }
 
 // ======================
-// CONFIGURACIÓN EXPRESS
+// KEEP-ALIVE PARA RENDER
 // ======================
-// Configuración de CORS ESPECÍFICA
-// Configuración SIMPLE de CORS
-app.use(cors());
-app.use(express.static('public'));
-app.use(express.json());
+function startKeepAlive() {
+  // Hacer ping a sí mismo cada 10 minutos
+  setInterval(() => {
+    const renderUrl = process.env.RENDER_EXTERNAL_URL || 'https://bar-irlanda-backend.onrender.com';
+    
+    if (renderUrl) {
+      const url = `${renderUrl}/api/health`;
+      console.log('🏓 Enviando keep-alive a:', url);
+      
+      https.get(url, (res) => {
+        console.log('✅ Keep-alive respuesta:', res.statusCode);
+      }).on('error', (err) => {
+        console.error('❌ Keep-alive error:', err.message);
+      });
+    }
+  }, 600000); // 10 minutos
+}
 
+// ======================
+// CONFIGURACIÓN EXPRESS ROUTES
+// ======================
 app.get('/api/menu', (req, res) => {
   res.json(menu);
 });
@@ -407,22 +548,41 @@ app.get('/api/state', (req, res) => {
   });
 });
 
-// Ruta de prueba para verificar CORS
 app.get('/api/health', (req, res) => {
   res.json({
     status: 'OK',
     message: 'Bar Irlanda Backend funcionando',
     timestamp: new Date().toISOString(),
+    stats: {
+      calls: state.calls.length,
+      orders: state.orders.length,
+      bills: state.bills.length,
+      tables: Object.values(state.tables).filter(t => t.status !== 'available').length
+    },
     cors: 'Configurado correctamente'
   });
 });
 
 // ======================
-// SOCKET.IO - CON TIEMPOS PRECISOS
+// SOCKET.IO - EVENTOS
 // ======================
 io.on('connection', (socket) => {
   console.log('🔌 Cliente conectado:', socket.id, new Date().toLocaleTimeString());
   
+  // Ping mejorado
+  socket.on('ping', () => {
+    socket.emit('pong', { 
+      serverTime: Date.now(),
+      message: 'pong'
+    });
+    socket.lastPing = Date.now();
+  });
+
+  // Verificación de salud de conexiones
+  socket.on('disconnect', () => {
+    console.log(`🔌 Cliente desconectado: ${socket.id}`, new Date().toLocaleTimeString());
+  });
+
   // ====================================
   // 1. CLIENTE SE CONECTA A UNA MESA
   // ====================================
@@ -493,6 +653,7 @@ io.on('connection', (socket) => {
     });
     
     notifyAdmins('table-updated', table);
+    saveStateToDisk(); // Guardar después de cambios importantes
   });
   
   // ====================================
@@ -545,6 +706,7 @@ io.on('connection', (socket) => {
     });
     
     notifyAdmins('table-updated', table);
+    saveStateToDisk(); // Guardar después de cambios importantes
   });
   
   // ====================================
@@ -584,10 +746,11 @@ io.on('connection', (socket) => {
     }
     
     notifyAdmins('table-updated', table);
+    saveStateToDisk(); // Guardar después de cambios importantes
   });
   
   // ====================================
-  // 5. LLAMAR AL MOZO - CON TIEMPO PRECISO
+  // 5. LLAMAR AL MOZO
   // ====================================
   socket.on('call-waiter', () => {
     const tableId = socket.tableId;
@@ -619,10 +782,12 @@ io.on('connection', (socket) => {
       callId: callId,
       time: formatTime(callTime)
     });
+    
+    saveStateToDisk(); // Guardar después de cambios importantes
   });
   
   // ====================================
-  // 6. ENVIAR PEDIDO - CON TIEMPO PRECISO
+  // 6. ENVIAR PEDIDO
   // ====================================
   socket.on('place-order', () => {
     const tableId = socket.tableId;
@@ -674,10 +839,11 @@ io.on('connection', (socket) => {
     });
     
     notifyAdmins('table-updated', table);
+    saveStateToDisk(); // Guardar después de cambios importantes
   });
   
   // ====================================
-  // 7. PEDIR LA CUENTA - CON TIEMPO PRECISO
+  // 7. PEDIR LA CUENTA
   // ====================================
   socket.on('request-bill', () => {
     const tableId = socket.tableId;
@@ -743,6 +909,7 @@ io.on('connection', (socket) => {
     });
     
     notifyAdmins('table-updated', table);
+    saveStateToDisk(); // Guardar después de cambios importantes
   });
   
   // ====================================
@@ -810,6 +977,7 @@ io.on('connection', (socket) => {
       notifyAdmins('call-attended', callId);
       io.to(`mesa-${call.tableId}`).emit('waiter-arriving');
     }
+    saveStateToDisk(); // Guardar después de cambios importantes
   });
   
   socket.on('mark-order-served', (orderId) => {
@@ -878,6 +1046,7 @@ io.on('connection', (socket) => {
       
       notifyAdmins('table-updated', table);
     }
+    saveStateToDisk(); // Guardar después de cambios importantes
   });
   
   // ====================================
@@ -893,18 +1062,15 @@ io.on('connection', (socket) => {
       
       const table = state.tables[bill.tableId];
       if (table) {
-        // Cambiar estado a pagado pero ocupado
         table.status = 'paid_but_occupied';
         table.lastActivity = paidTime;
         
-        // Notificar al cliente que pagó
         io.to(`mesa-${table.id}`).emit('bill-paid', {
           message: '✅ Pago confirmado - ¡Gracias!',
           finalTotal: bill.total,
           paidTime: formatTime(paidTime)
         });
         
-        // Actualizar estado en cliente
         io.to(`mesa-${table.id}`).emit('cart-updated', {
           pendingCart: table.pendingCart,
           servedItems: table.servedItems,
@@ -920,17 +1086,17 @@ io.on('connection', (socket) => {
       
       notifyAdmins('bill-paid', billId);
     }
+    saveStateToDisk(); // Guardar después de cambios importantes
   });
   
   // ====================================
-  // ADMIN: LIBERAR MESA DESPUÉS DE PAGO
+  // ADMIN: LIBERAR MESA
   // ====================================
   socket.on('free-table', (tableId) => {
     const table = state.tables[tableId];
     if (table) {
       const freeTime = new Date();
       
-      // Reiniciar TODO el consumo de la mesa
       table.pendingCart = [];
       table.servedItems = [];
       table.currentTotal = 0;
@@ -940,7 +1106,6 @@ io.on('connection', (socket) => {
       table.people = [];
       table.lastActivity = freeTime;
       
-      // Reiniciar timestamps
       table.timestamps = {
         lastOrder: null,
         lastCall: null,
@@ -948,12 +1113,10 @@ io.on('connection', (socket) => {
         lastServed: null
       };
       
-      // Notificar al cliente (si sigue conectado)
       io.to(`mesa-${table.id}`).emit('table-freed', {
         message: 'Mesa liberada - ¡Hasta la próxima!'
       });
       
-      // Reiniciar estado del cliente
       io.to(`mesa-${table.id}`).emit('cart-updated', {
         pendingCart: [],
         servedItems: [],
@@ -964,21 +1127,41 @@ io.on('connection', (socket) => {
         status: 'available'
       });
       
-      // Enviar a la pantalla de selección de cuenta
       io.to(`mesa-${table.id}`).emit('reset-to-bill-selection');
       
       notifyAdmins('table-freed', table);
     }
-  });
-  
-  socket.on('ping', () => {
-    socket.emit('pong', Date.now());
-  });
-  
-  socket.on('disconnect', () => {
-    console.log(`🔌 Cliente desconectado: ${socket.id}`, new Date().toLocaleTimeString());
+    saveStateToDisk(); // Guardar después de cambios importantes
   });
 });
+
+// ======================
+// VERIFICACIÓN PERIÓDICA DE SALUD
+// ======================
+setInterval(() => {
+  const now = Date.now();
+  io.sockets.sockets.forEach((socket) => {
+    if (socket.lastPing && now - socket.lastPing > 300000) { // 5 minutos sin ping
+      console.log('⚠️ Cliente inactivo, desconectando:', socket.id);
+      socket.disconnect(true);
+    }
+  });
+}, 60000);
+
+// ======================
+// GUARDADO AUTOMÁTICO CADA MINUTO
+// ======================
+setInterval(saveStateToDisk, BACKUP_INTERVAL);
+
+// ======================
+// CARGAR ESTADO AL INICIAR
+// ======================
+loadStateFromDisk();
+
+// ======================
+// INICIAR KEEP-ALIVE
+// ======================
+startKeepAlive();
 
 // ======================
 // INICIAR SERVIDOR
@@ -989,10 +1172,13 @@ server.listen(PORT, () => {
   console.log(`
 =========================================
       🍀 BAR IRLANDA PUB 🍀
-  Sistema con Tiempos Precisos
+  Sistema con Persistencia para Render
 =========================================
 ✅ Servidor en: http://localhost:${PORT}
 ⏰ Iniciado: ${new Date().toLocaleString()}
+💾 Backup automático cada minuto
+🏓 Keep-alive cada 10 minutos
+🇦🇷 Hora Argentina forzada
 
 📱 Cliente:   http://localhost:${PORT}/cliente.html?mesa=1
 👨‍💼 Admin:     http://localhost:${PORT}/admin.html
